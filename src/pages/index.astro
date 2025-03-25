@@ -1,10 +1,62 @@
 ---
+import { Asset, AssetCategory, Category, db, eq, isNull } from 'astro:db'
 import Layout from '~/layouts/Layout.astro'
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const assets = await db
+  .select()
+  .from(Asset)
+  .innerJoin(AssetCategory, eq(Asset.id, AssetCategory.assetId))
+  .innerJoin(Category, eq(AssetCategory.categoryId, Category.id))
+  .where(isNull(Asset.deletedAt))
+
+console.log(assets)
+
 ---
 
 <Layout>
-  <h1>hello</h1>
+  <ul>
+    {assets.map(asset => (
+      <li>{asset.Asset.name}</li>
+    ))}
+  </ul>
+  {/* <!-- <h1>hello</h1> -->
+  <div class="card">
+    <!-- <div class="card-header">
+      Featured
+    </div> -->
+    <div class="card-body">
+      <table class="table table-striped table-hover">
+        <!-- <caption>Showing x of 100</caption> -->
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Title</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">1</th>
+            <td>Car</td>
+          </tr>
+          <tr>
+            <th scope="row">2</th>
+            <td>Oven</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2">
+      <p class="m-0">Showing x of 100</p>
+      <nav aria-label="Page navigation example">
+        <ul class="m-0 pagination">
+          <li class="page-item"><a class="page-link" href="#">Previous</a></li>
+          <li class="page-item"><a class="page-link" href="#">1</a></li>
+          <li class="page-item"><a class="page-link" href="#">2</a></li>
+          <li class="page-item"><a class="page-link" href="#">3</a></li>
+          <li class="page-item"><a class="page-link" href="#">Next</a></li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+  */}
 </Layout>
