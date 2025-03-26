@@ -1,62 +1,80 @@
 ---
-import { Asset, AssetCategory, Category, db, eq, isNull } from 'astro:db'
+import { Asset, count, db, eq, isNull, Status, User } from 'astro:db'
+import Pagination from '~/components/Pagination.astro'
 import Layout from '~/layouts/Layout.astro'
+import { getPaginationDetails } from '~/utils/paginate'
+
+const url = Astro.url
+const { page, pageSize } = getPaginationDetails(url)
+
+const nf = new Intl.NumberFormat('en', {
+  style: 'currency',
+  currency: 'EUR',
+})
 
 const assets = await db
   .select()
   .from(Asset)
-  .innerJoin(AssetCategory, eq(Asset.id, AssetCategory.assetId))
-  .innerJoin(Category, eq(AssetCategory.categoryId, Category.id))
+  // .innerJoin(AssetCategory, eq(Asset.id, AssetCategory.assetId))
+  // .innerJoin(Category, eq(AssetCategory.categoryId, Category.id))
+  .innerJoin(Status, eq(Asset.statusId, Status.id))
+  .innerJoin(User, eq(Asset.createdById, User.id))
+  .where(isNull(Asset.deletedAt))
+  .limit(pageSize)
+  .offset((page - 1) * pageSize) // consider cursor if needed
+  .orderBy(Asset.id)
+
+const [assetsCount] = await db
+  .select({ value: count() })
+  .from(Asset)
   .where(isNull(Asset.deletedAt))
 
-console.log(assets)
-
+if ((page * pageSize) > assetsCount.value) {
+  return new Response(null, {
+    status: 404,
+  })
+}
 ---
 
-<Layout>
-  <ul>
-    {assets.map(asset => (
-      <li>{asset.Asset.name}</li>
-    ))}
-  </ul>
-  {/* <!-- <h1>hello</h1> -->
-  <div class="card">
-    <!-- <div class="card-header">
-      Featured
-    </div> -->
-    <div class="card-body">
-      <table class="table table-striped table-hover">
-        <!-- <caption>Showing x of 100</caption> -->
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Title</th>
+<Layout title="Assets">
+  <div class="-mx-4 mt-10 ring-1 ring-gray-300 sm:mx-0 sm:rounded-lg bg-white shadow">
+    <table class="min-w-full divide-y divide-gray-300">
+      <thead>
+        <tr>
+          <th scope="col" class="hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 lg:table-cell lg:pl-6">ID</th>
+          <th scope="col" class="pl-4 pr-3 py-3.5 text-left text-sm font-semibold text-gray-900 sm:pl-6 lg:pl-3">Name</th>
+          <th scope="col" class="hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 lg:table-cell">Status</th>
+          <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Price</th>
+          <th scope="col" class="hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 lg:table-cell">Added by</th>
+          <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+            <span class="sr-only">Select</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {assets.map(({ Asset: asset, Status: status, User: publisher }) => (
+          <tr class="odd:bg-gray-50">
+            <td class="hidden px-3 py-3.5 text-sm text-gray-500 lg:table-cell lg:pl-6">{ asset.id }</td>
+            <td class="relative py-4 pl-4 pr-3 text-sm sm:pl-6 lg:pl-3">
+              <div class="font-medium text-gray-900">{ asset.name }</div>
+              <div class="mt-1 flex flex-col text-gray-500 sm:block lg:hidden">
+                <span>#{ asset.id }</span>
+                <span class="hidden sm:inline">·</span>
+                <span>{ status.name }</span>
+              </div>
+            </td>
+            <td class="hidden px-3 py-3.5 text-sm text-gray-500 lg:table-cell">{ status.name }</td>
+            <td class="px-3 py-3.5 text-sm text-gray-500">
+              { nf.format(asset.purchasePrice) }
+            </td>
+            <td class="hidden px-3 py-3.5 text-sm text-gray-500 lg:table-cell">{ publisher.email }</td>
+            <td class="relative py-3.5 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+              <a href={`/assets/${asset.id}`} class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white">View<span class="sr-only"> { asset.id }</span></a>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th scope="row">1</th>
-            <td>Car</td>
-          </tr>
-          <tr>
-            <th scope="row">2</th>
-            <td>Oven</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="card-footer d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2">
-      <p class="m-0">Showing x of 100</p>
-      <nav aria-label="Page navigation example">
-        <ul class="m-0 pagination">
-          <li class="page-item"><a class="page-link" href="#">Previous</a></li>
-          <li class="page-item"><a class="page-link" href="#">1</a></li>
-          <li class="page-item"><a class="page-link" href="#">2</a></li>
-          <li class="page-item"><a class="page-link" href="#">3</a></li>
-          <li class="page-item"><a class="page-link" href="#">Next</a></li>
-        </ul>
-      </nav>
-    </div>
+        ))}
+      </tbody>
+    </table>
+    <Pagination page={page} pageSize={pageSize} total={assetsCount.value} />
   </div>
-  */}
 </Layout>

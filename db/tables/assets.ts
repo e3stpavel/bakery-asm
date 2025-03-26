@@ -1,4 +1,4 @@
-import { column, defineTable } from 'astro:db'
+import { column, defineTable, NOW } from 'astro:db'
 import { Country } from './countries'
 import { User } from './users'
 
@@ -46,9 +46,9 @@ export const Asset = defineTable({
     statusId: column.number({ references: () => Status.columns.id }),
     locationId: column.number({ references: () => Location.columns.id }),
     createdById: column.number({ references: () => User.columns.id }),
-    createdAt: column.date(),
+    createdAt: column.date({ default: NOW }),
     updatedById: column.number({ references: () => User.columns.id }),
-    updatedAt: column.date({}),
+    updatedAt: column.date({ default: NOW }),
     purchasedAt: column.date(),
     purchasePrice: column.number(),
     // vendor
@@ -56,7 +56,7 @@ export const Asset = defineTable({
     ownershipId: column.number({ references: () => Ownership.columns.id }),
     conditionId: column.number({ references: () => Condition.columns.id }),
     expectedLifespanInMonths: column.number({ optional: true }),
-    serialNumber: column.text({ unique: true }),
+    serialNumber: column.text({ /* unique: true */ }),
     imageUrl: column.text({ optional: true }),
     deletedAt: column.date({ optional: true }),
   },
@@ -67,4 +67,7 @@ export const AssetCategory = defineTable({
     categoryId: column.number({ references: () => Category.columns.id }),
     assetId: column.number({ references: () => Asset.columns.id }),
   },
+  indexes: [
+    { on: ['assetId', 'categoryId'], unique: true },
+  ],
 })

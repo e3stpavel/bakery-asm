@@ -6,6 +6,5 @@ export const User = defineTable({
     firstName: column.text(),
     lastName: column.text(),
     email: column.text({ unique: true }),
-
   },
 })

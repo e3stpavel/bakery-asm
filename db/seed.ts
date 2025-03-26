@@ -21,7 +21,7 @@ export default async function seed() {
     })
     .returning()
 
-  const [equipment, _furniture, vehicle] = await db
+  const [equipment, furniture, vehicle] = await db
     .insert(Category)
     .values([
       { name: 'Kitchen Equipment' },
@@ -68,39 +68,52 @@ export default async function seed() {
     ])
     .returning()
 
+  const assets = [
+    {
+      name: 'Oven',
+      description: 'Electrolux HW9393287A',
+      statusId: statusInUse.id,
+      ownershipId: owned.id,
+      conditionId: goodCondition.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdById: user.id,
+      updatedById: user.id,
+      locationId: bakery.id,
+      purchasedAt: new Date(2022, 0, 28, 10, 12, 38),
+      purchasePrice: 1_700,
+      serialNumber: 'HWU029KA920',
+      expectedLifespanInMonths: 48,
+    },
+    {
+      name: 'Delivery Van',
+      statusId: statusInUse.id,
+      ownershipId: leased.id,
+      conditionId: normalCondition.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdById: user.id,
+      updatedById: user.id,
+      locationId: warehouse.id,
+      purchasedAt: new Date(2024, 11, 1, 17, 48, 0),
+      purchasePrice: 8_280,
+      serialNumber: '282IA20290LAOW02902AKQO2',
+    },
+  ]
   const [oven, car] = await db
     .insert(Asset)
     .values([
-      {
-        name: 'Oven',
-        description: 'Electrolux HW9393287A',
-        statusId: statusInUse.id,
-        ownershipId: owned.id,
-        conditionId: goodCondition.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        createdById: user.id,
-        updatedById: user.id,
-        locationId: bakery.id,
-        purchasedAt: new Date(2022, 0, 28, 10, 12, 38),
-        purchasePrice: 1_700,
-        serialNumber: 'HWU029KA920',
-        expectedLifespanInMonths: 48,
-      },
-      {
-        name: 'Delivery Van',
-        statusId: statusInUse.id,
-        ownershipId: leased.id,
-        conditionId: normalCondition.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        createdById: user.id,
-        updatedById: user.id,
-        locationId: warehouse.id,
-        purchasedAt: new Date(2024, 11, 1, 17, 48, 0),
-        purchasePrice: 8_280,
-        serialNumber: '282IA20290LAOW02902AKQO2',
-      },
+      ...assets,
+      ...assets,
+      ...assets,
+      ...assets,
+      ...assets,
+      ...assets,
+      ...assets,
+      ...assets,
+      ...assets,
+      ...assets,
+      ...assets,
     ])
     .returning()
 
@@ -112,6 +125,10 @@ export default async function seed() {
     {
       assetId: car.id,
       categoryId: vehicle.id,
+    },
+    {
+      assetId: oven.id,
+      categoryId: furniture.id,
     },
   ])
 }

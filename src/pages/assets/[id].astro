@@ -1,0 +1,114 @@
+---
+import { and, Asset, AssetCategory, Category, Condition, db, eq, isNull, Location, Ownership, Status, User } from 'astro:db'
+
+
+import Layout from '~/layouts/Layout.astro'
+
+const { id } = Astro.params
+if (!id || Number.isNaN(+id)) {
+  return new Response(null, {
+    status: 404,
+  })
+}
+
+const [result] = await db
+  .select()
+  .from(Asset)
+  // .leftJoin(AssetCategory, eq(Asset.id, AssetCategory.assetId))
+  // .leftJoin(Category, eq(AssetCategory.categoryId, Category.id))
+  .innerJoin(Status, eq(Asset.statusId, Status.id))
+  .innerJoin(Condition, eq(Asset.conditionId, Condition.id))
+  .innerJoin(Location, eq(Asset.locationId, Location.id))
+  .innerJoin(Ownership, eq(Asset.ownershipId, Ownership.id))
+  .innerJoin(User, eq(Asset.createdById, User.id))
+  .where(and(
+    eq(Asset.id, +id),
+    isNull(Asset.deletedAt),
+  ))
+  .limit(1)
+
+if (!result) {
+  return new Response(null, {
+    status: 404,
+  })
+}
+
+const {
+  Asset: asset,
+  User: user,
+  Status: { name: status },
+  Location: { name: location },
+  Condition: { name: condition },
+  Ownership: { name: ownership },
+} = result
+
+const categoriesResult = await db
+  .select()
+  .from(AssetCategory)
+  .leftJoin(Asset, eq(Asset.id, AssetCategory.assetId))
+  .leftJoin(Category, eq(Category.id, AssetCategory.categoryId))
+  .where(eq(Asset.id, +id))
+
+const categories = categoriesResult
+  .map(row => row.Category)
+  .filter(category => category !== null)
+---
+
+<Layout title="Asset details">
+  <div class="overflow-hidden bg-white shadow sm:rounded-lg mt-10 max-sm:-mx-4">
+    <div class="px-4 py-6 sm:px-6">
+      <h3 class="text-base font-semibold leading-7 text-gray-900">{ asset.name }</h3>
+      <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{ asset.description ?? 'Asset details and categories' }</p>
+    </div>
+    <div class="border-t border-gray-100">
+      <dl class="divide-y divide-gray-100">
+        <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-900">Name</dt>
+          <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{ asset.name }</dd>
+        </div>
+        <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-900">Description</dt>
+          <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{ asset.description }</dd>
+        </div>
+        <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-900">Status</dt>
+          <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{ status }</dd>
+        </div>
+        <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-900">Location</dt>
+          <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{ location }</dd>
+        </div>
+        <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-900">Condition</dt>
+          <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{ condition }</dd>
+        </div>
+        <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-900">Condition</dt>
+          <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{ ownership }</dd>
+        </div>
+        <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-900">Added by</dt>
+          <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+            { `${user.firstName} ${user.lastName}` }
+            <span class="text-fuchsia-700">({ user.email })</span>
+          </dd>
+        </div>
+        <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium leading-6 text-gray-900">Categories</dt>
+          <dd class="mt-2 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
+            <ul role="list" class="divide-y divide-gray-100 rounded-md border border-gray-200">
+              {categories.map(category => (
+                <li class="py-4 px-4 text-sm leading-6">
+                  <div class="flex items-center gap-2">
+                    <span class="truncate font-medium">{ category.name }</span>
+                    <span class="flex-shrink-0 text-gray-400">#{ category.id }</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</Layout>
