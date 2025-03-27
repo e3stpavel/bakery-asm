@@ -1,8 +1,6 @@
 ---
-import { and, Asset, AssetCategory, Category, Condition, db, eq, isNull, Location, Ownership, Status, User } from 'astro:db'
-
-
 import Layout from '~/layouts/Layout.astro'
+import { findAssetById, getAssetCategories } from '~/utils/data/assets'
 
 const { id } = Astro.params
 if (!id || Number.isNaN(+id)) {
@@ -11,22 +9,7 @@ if (!id || Number.isNaN(+id)) {
   })
 }
 
-const [result] = await db
-  .select()
-  .from(Asset)
-  // .leftJoin(AssetCategory, eq(Asset.id, AssetCategory.assetId))
-  // .leftJoin(Category, eq(AssetCategory.categoryId, Category.id))
-  .innerJoin(Status, eq(Asset.statusId, Status.id))
-  .innerJoin(Condition, eq(Asset.conditionId, Condition.id))
-  .innerJoin(Location, eq(Asset.locationId, Location.id))
-  .innerJoin(Ownership, eq(Asset.ownershipId, Ownership.id))
-  .innerJoin(User, eq(Asset.createdById, User.id))
-  .where(and(
-    eq(Asset.id, +id),
-    isNull(Asset.deletedAt),
-  ))
-  .limit(1)
-
+const result = await findAssetById(+id)
 if (!result) {
   return new Response(null, {
     status: 404,
@@ -42,23 +25,14 @@ const {
   Ownership: { name: ownership },
 } = result
 
-const categoriesResult = await db
-  .select()
-  .from(AssetCategory)
-  .leftJoin(Asset, eq(Asset.id, AssetCategory.assetId))
-  .leftJoin(Category, eq(Category.id, AssetCategory.categoryId))
-  .where(eq(Asset.id, +id))
-
-const categories = categoriesResult
-  .map(row => row.Category)
-  .filter(category => category !== null)
+const categories = await getAssetCategories(asset.id)
 ---
 
 <Layout title="Asset details">
   <div class="overflow-hidden bg-white shadow sm:rounded-lg mt-10 max-sm:-mx-4">
     <div class="px-4 py-6 sm:px-6">
       <h3 class="text-base font-semibold leading-7 text-gray-900">{ asset.name }</h3>
-      <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{ asset.description ?? 'Asset details and categories' }</p>
+      <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500">Asset details and categories</p>
     </div>
     <div class="border-t border-gray-100">
       <dl class="divide-y divide-gray-100">
@@ -68,7 +42,7 @@ const categories = categoriesResult
         </div>
         <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
           <dt class="text-sm font-medium text-gray-900">Description</dt>
-          <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{ asset.description }</dd>
+          <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{ asset.description ?? '<empty>' }</dd>
         </div>
         <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
           <dt class="text-sm font-medium text-gray-900">Status</dt>
@@ -83,7 +57,7 @@ const categories = categoriesResult
           <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{ condition }</dd>
         </div>
         <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-          <dt class="text-sm font-medium text-gray-900">Condition</dt>
+          <dt class="text-sm font-medium text-gray-900">Ownership</dt>
           <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{ ownership }</dd>
         </div>
         <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">

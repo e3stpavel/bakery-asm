@@ -1,8 +1,11 @@
 ---
-import { Asset, count, db, eq, isNull, Status, User } from 'astro:db'
+import { actions } from 'astro:actions'
 import Pagination from '~/components/Pagination.astro'
 import Layout from '~/layouts/Layout.astro'
+import { countAssets, findAssets } from '~/utils/data/assets'
 import { getPaginationDetails } from '~/utils/paginate'
+
+const result = Astro.getActionResult(actions.assets.remove)
 
 const url = Astro.url
 const { page, pageSize } = getPaginationDetails(url)
@@ -12,24 +15,10 @@ const nf = new Intl.NumberFormat('en', {
   currency: 'EUR',
 })
 
-const assets = await db
-  .select()
-  .from(Asset)
-  // .innerJoin(AssetCategory, eq(Asset.id, AssetCategory.assetId))
-  // .innerJoin(Category, eq(AssetCategory.categoryId, Category.id))
-  .innerJoin(Status, eq(Asset.statusId, Status.id))
-  .innerJoin(User, eq(Asset.createdById, User.id))
-  .where(isNull(Asset.deletedAt))
-  .limit(pageSize)
-  .offset((page - 1) * pageSize) // consider cursor if needed
-  .orderBy(Asset.id)
+const assets = await findAssets(page, pageSize)
+const assetsCount = await countAssets()
 
-const [assetsCount] = await db
-  .select({ value: count() })
-  .from(Asset)
-  .where(isNull(Asset.deletedAt))
-
-if ((page * pageSize) > assetsCount.value) {
+if ((page * pageSize) > assetsCount && assets.length === 0) {
   return new Response(null, {
     status: 404,
   })
@@ -37,7 +26,21 @@ if ((page * pageSize) > assetsCount.value) {
 ---
 
 <Layout title="Assets">
-  <div class="-mx-4 mt-10 ring-1 ring-gray-300 sm:mx-0 sm:rounded-lg bg-white shadow">
+  {result && !result.error && (
+    <div class="rounded-md bg-green-600 border border-green-700 shadow p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-green-50" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-white">Asset was successfully removed</p>
+        </div>
+      </div>
+    </div>
+  )}
+  <div class="-mx-4 mt-5 ring-1 ring-gray-300 sm:mx-0 sm:rounded-lg bg-white shadow">
     <table class="min-w-full divide-y divide-gray-300">
       <thead>
         <tr>
@@ -70,11 +73,15 @@ if ((page * pageSize) > assetsCount.value) {
             <td class="hidden px-3 py-3.5 text-sm text-gray-500 lg:table-cell">{ publisher.email }</td>
             <td class="relative py-3.5 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
               <a href={`/assets/${asset.id}`} class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white">View<span class="sr-only"> { asset.id }</span></a>
+              <form method="POST" action={actions.assets.remove} class="contents">
+                <input type="hidden" name="assetId" value={asset.id} />
+                <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white">Remove<span class="sr-only"> { asset.id }</span></button>
+              </form>
             </td>
           </tr>
         ))}
       </tbody>
     </table>
-    <Pagination page={page} pageSize={pageSize} total={assetsCount.value} />
+    <Pagination page={page} pageSize={pageSize} total={assetsCount} />
   </div>
 </Layout>

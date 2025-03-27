@@ -4,6 +4,13 @@ import '~/styles/global.css'
 interface Props {
   title: string
 }
+
+const paths = [
+  { name: 'Manage assets', path: '/' },
+  { name: 'Report', path: '/report' },
+]
+
+const currentPath = Astro.url.pathname
 ---
 
 <!doctype html>
@@ -26,9 +33,22 @@ interface Props {
             <a href="/" class="text-lg font-semibold text-white">Bakery Asset Management</a>
             <div class="hidden md:block">
               <div class="ml-10 flex items-baseline space-x-4">
-                <a href="/" class="bg-fuchsia-700 text-white rounded-md px-3 py-2 text-sm font-medium" aria-current="page">Assets</a>
-                <a href="/report" class="text-white hover:bg-fuchsia-500 hover:bg-opacity-75 rounded-md px-3 py-2 text-sm font-medium">Report</a>
-                <a href="/manage" class="text-white hover:bg-fuchsia-500 hover:bg-opacity-75 rounded-md px-3 py-2 text-sm font-medium">Manage</a>
+                {paths.map(({ name, path }) => {
+                  const isCurrentPage = path === currentPath
+
+                  return (
+                    <a
+                      href={path}
+                      class:list={[
+                        'text-white rounded-md px-3 py-2 text-sm font-medium hover:bg-fuchsia-500 hover:bg-opacity-75',
+                        { 'bg-fuchsia-700': isCurrentPage },
+                      ]}
+                      aria-current={isCurrentPage ? 'page' : 'false'}
+                    >
+                      { name }
+                    </a>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -44,19 +64,32 @@ interface Props {
 
       <div class="md:hidden" id="mobile-menu">
         <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
-          <a href="/" class="bg-fuchsia-700 text-white block rounded-md px-3 py-2 text-base font-medium" aria-current="page">View all assets</a>
-          <a href="/report" class="text-white hover:bg-fuchsia-500 hover:bg-opacity-75 block rounded-md px-3 py-2 text-base font-medium">Generate assets report</a>
-          <a href="/manage" class="text-white hover:bg-fuchsia-500 hover:bg-opacity-75 block rounded-md px-3 py-2 text-base font-medium">Manage assets</a>
+          {paths.map(({ name, path }) => {
+            const isCurrentPage = path === currentPath
+
+            return (
+              <a
+                href={path}
+                class:list={[
+                  'text-white hover:bg-fuchsia-500 hover:bg-opacity-75 block rounded-md px-3 py-2 text-base font-medium',
+                  { 'bg-fuchsia-700': isCurrentPage },
+                ]}
+                aria-current={isCurrentPage ? 'page' : 'false'}
+              >
+                { name }
+              </a>
+            )
+          })}
         </div>
         <div class="border-t border-fuchsia-700 pb-3 pt-4">
           <div class="flex items-center px-5 sm:px-6">
             <div>
               <div class="text-base font-medium text-white">Tom Cook</div>
-              <div class="text-sm font-medium text-indigo-300">tom@example.com</div>
+              <div class="text-sm font-medium text-fuchsia-300">tom@example.com</div>
             </div>
           </div>
           <div class="mt-3 space-y-1 px-2 sm:px-3">
-            <button type="button" class="block rounded-md px-3 py-2 text-base font-medium text-white hover:bg-fuchsia-500 hover:bg-opacity-75">Sign out</button>
+            <button type="button" class="block w-full text-start rounded-md px-3 py-2 text-base font-medium text-white hover:bg-fuchsia-500 hover:bg-opacity-75">Sign out</button>
           </div>
         </div>
       </div>

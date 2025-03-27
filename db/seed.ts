@@ -58,7 +58,7 @@ export default async function seed() {
     ])
     .returning()
 
-  const [statusInUse] = await db
+  const [statusInUse, statusStored] = await db
     .insert(Status)
     .values([
       { name: 'In-use' },
@@ -87,7 +87,7 @@ export default async function seed() {
     },
     {
       name: 'Delivery Van',
-      statusId: statusInUse.id,
+      statusId: statusStored.id,
       ownershipId: leased.id,
       conditionId: normalCondition.id,
       createdAt: new Date(),
