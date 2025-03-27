@@ -18,6 +18,7 @@ export default async function seed() {
       email: 'pamayo@taltech.ee',
       firstName: 'Pavel',
       lastName: 'Mayorov',
+      passwordHash: '$argon2i$v=19$m=19456,t=2,p=1$QkJiWVVIdXg4MTAxY2dNOQ$JMZNNF+T0JQ15hdXWngW/gusXqOBtPUdsocG3k+yEfA',
     })
     .returning()
 

@@ -1,9 +1,13 @@
 ---
 import { actions } from 'astro:actions'
 import Pagination from '~/components/Pagination.astro'
-import Layout from '~/layouts/Layout.astro'
+import HomeLayout from '~/layouts/HomeLayout.astro'
 import { countAssets, findAssets } from '~/utils/data/assets'
 import { getPaginationDetails } from '~/utils/paginate'
+
+if (!Astro.locals.user) {
+  return Astro.rewrite('/login')
+}
 
 const result = Astro.getActionResult(actions.assets.remove)
 
@@ -25,7 +29,7 @@ if ((page * pageSize) > assetsCount && assets.length === 0) {
 }
 ---
 
-<Layout title="Assets">
+<HomeLayout title="Assets">
   {result && !result.error && (
     <div class="rounded-md bg-green-600 border border-green-700 shadow p-4">
       <div class="flex">
@@ -84,4 +88,4 @@ if ((page * pageSize) > assetsCount && assets.length === 0) {
     </table>
     <Pagination page={page} pageSize={pageSize} total={assetsCount} />
   </div>
-</Layout>
+</HomeLayout>
