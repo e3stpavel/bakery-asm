@@ -9,7 +9,7 @@ export const assets = {
       assetId: z.coerce.number().gt(0),
     }),
     handler: async ({ assetId }, context) => {
-      if (context.locals.user) {
+      if (!context.locals.user) {
         throw new ActionError({
           code: 'UNAUTHORIZED',
         })

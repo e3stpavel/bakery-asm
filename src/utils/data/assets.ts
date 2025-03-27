@@ -67,6 +67,7 @@ export async function getAssetReport() {
     })
     .from(Asset)
     .innerJoin(Status, eq(Asset.statusId, Status.id))
+    .where(isNull(Asset.deletedAt))
 
   return result
 }
