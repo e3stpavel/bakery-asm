@@ -1,92 +1,164 @@
-import {
-  and,
-  Asset,
-  AssetCategory,
-  Category,
-  Condition,
-  count,
-  db,
-  eq,
-  isNull,
-  Location,
-  Ownership,
-  sql,
-  Status,
-  User,
-} from 'astro:db'
+import { z } from 'astro/zod'
+import { db } from '~/utils/db'
+import { assetSchema } from '~/utils/domain/asset'
+import { classificatorSchema } from '~/utils/domain/classificator'
+import { partialUserSchema } from '~/utils/domain/user'
 
 export async function findAssets(page: number = 1, pageSize: number = 10) {
-  return await db
-    .select()
-    .from(Asset)
-    .innerJoin(Status, eq(Asset.statusId, Status.id))
-    .innerJoin(User, eq(Asset.createdById, User.id))
-    .where(isNull(Asset.deletedAt))
-    .limit(pageSize)
-    .offset((page - 1) * pageSize) // consider cursor if needed
-    .orderBy(Asset.id)
+  // consider cursor if needed
+  const result = await db.execute({
+    sql: `
+      SELECT
+        a.*,
+        s.name AS status,
+        u.id AS user_id,
+        u.firstname,
+        u.lastname,
+        u.email
+      FROM Assets a
+      INNER JOIN Statuses s on a.status_id = s.id
+      INNER JOIN Users u on a.updated_by_id = u.id
+      WHERE a.deleted_at IS NULL AND a.deleted_by_id IS NULL
+      ORDER BY a.id
+      LIMIT (:limit)
+      OFFSET (:offset)
+    `,
+    args: {
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    },
+  })
+
+  return result.rows.map((row) => {
+    const asset = assetSchema.parse(row)
+    const status = z.string().parse(row.status)
+    const updatedBy = partialUserSchema.parse({ ...row, id: row['user_id'] })
+
+    return {
+      asset,
+      status,
+      updatedBy,
+    }
+  })
 }
 
 export async function findAssetById(assetId: number) {
-  const result = await db
-    .select()
-    .from(Asset)
-    .innerJoin(Status, eq(Asset.statusId, Status.id))
-    .innerJoin(Condition, eq(Asset.conditionId, Condition.id))
-    .innerJoin(Location, eq(Asset.locationId, Location.id))
-    .innerJoin(Ownership, eq(Asset.ownershipId, Ownership.id))
-    .innerJoin(User, eq(Asset.createdById, User.id))
-    .where(and(
-      eq(Asset.id, assetId),
-      isNull(Asset.deletedAt),
-    ))
-    .limit(1)
+  const result = await db.execute({
+    sql: `
+      SELECT
+        a.*,
+        s.name AS status,
+        c.name AS condition,
+        o.name AS ownership,
+        uc.id AS uc_id,
+        uc.firstname AS uc_firstname,
+        uc.lastname AS uc_lastname,
+        uc.email AS uc_email,
+        uu.id AS uu_id,
+        uu.firstname AS uu_firstname,
+        uu.lastname AS uu_lastname,
+        uu.email AS uu_email
+      FROM Assets a
+      INNER JOIN Statuses s on a.status_id = s.id
+      INNER JOIN Conditions c on a.condition_id = c.id
+      INNER JOIN Ownerships o on a.ownership_id = o.id
+      INNER JOIN Users uc on a.created_by_id = uc.id
+      INNER JOIN Users uu on a.updated_by_id = uu.id
+      WHERE a.id = (:assetId) AND a.deleted_at IS NULL AND a.deleted_by_id IS NULL
+      LIMIT 1
+    `,
+    args: { assetId },
+  })
 
-  return result.at(0)
+  const [row] = result.rows
+  if (!row)
+    return null
+
+  const asset = assetSchema.parse(row)
+  const classificators = z.object({
+    status: classificatorSchema.shape.name,
+    condition: classificatorSchema.shape.name,
+    ownership: classificatorSchema.shape.name,
+  }).parse(row)
+
+  console.log(row)
+  const createdBy = partialUserSchema.parse({
+    id: row['uc_id'],
+    firstname: row['uc_firstname'],
+    lastname: row['uc_lastname'],
+    email: row['uc_email'],
+  })
+  const updatedBy = partialUserSchema.parse({
+    id: row['uu_id'],
+    firstname: row['uu_firstname'],
+    lastname: row['uu_lastname'],
+    email: row['uu_email'],
+  })
+
+  return {
+    asset,
+    ...classificators,
+    createdBy,
+    updatedBy,
+  }
 }
 
 export async function getAssetCategories(assetId: number) {
-  const result = await db
-    .select()
-    .from(AssetCategory)
-    .leftJoin(Asset, eq(Asset.id, AssetCategory.assetId))
-    .leftJoin(Category, eq(Category.id, AssetCategory.categoryId))
-    .where(eq(Asset.id, assetId))
+  const result = await db.execute({
+    sql: `
+      SELECT c.* FROM AssetCategories ac
+      LEFT JOIN Assets a on a.id = ac.asset_id
+      LEFT JOIN Categories c on c.id = ac.category_id
+      WHERE a.id = (:assetId)
+    `,
+    args: { assetId },
+  })
 
-  return result
-    .map(row => row.Category)
-    .filter(category => category !== null)
+  return result.rows.map((row) => {
+    return classificatorSchema.parse(row)
+  })
 }
 
 export async function getAssetReport() {
-  const [result] = await db
-    .select({
-      assetsInUseCount: sql`sum(case when Status.name = 'In-use' then 1 else 0 end)`.mapWith(Number),
-      assetsStoredCount: sql`sum(case when Status.name = 'Stored' then 1 else 0 end)`.mapWith(Number),
-      assetsInServiceCount: sql`sum(case when Status.name = 'Service' or Status.name = 'Maintenance' then 1 else 0 end)`.mapWith(Number),
-    })
-    .from(Asset)
-    .innerJoin(Status, eq(Asset.statusId, Status.id))
-    .where(isNull(Asset.deletedAt))
+  const result = await db.execute({
+    sql: `
+      SELECT
+        SUM(CASE WHEN s.name = 'In use' THEN 1 ELSE 0 END),
+        SUM(CASE WHEN s.name = 'In storage' THEN 1 ELSE 0 END),
+        SUM(CASE WHEN s.name = 'Under maintenance' THEN 1 ELSE 0 END)
+      FROM Assets a
+      INNER JOIN Statuses s on a.status_id = s.id
+      WHERE a.deleted_at IS NULL AND a.deleted_by_id IS NULL
+    `,
+  })
 
-  return result
+  const [row] = result.rows
+  const [assetsInUseCount, assetsStoredCount, assetsInServiceCount] = z.number()
+    .positive()
+    .array()
+    .length(3)
+    .parse(Object.values(row))
+
+  return {
+    assetsInUseCount,
+    assetsStoredCount,
+    assetsInServiceCount,
+  }
 }
 
 export async function countAssets() {
-  const [result] = await db
-    .select({ value: count() })
-    .from(Asset)
-    .where(isNull(Asset.deletedAt))
+  const result = await db.execute({
+    sql: 'SELECT COUNT(id) FROM Assets WHERE deleted_at IS NULL AND deleted_by_id IS NULL',
+  })
 
-  return result.value
+  const [row] = result.rows
+  return z.number().positive().parse(row[0])
 }
 
 export async function removeAssetById(assetId: number) {
-  await db
-    .update(Asset)
-    .set({
-      deletedAt: new Date(),
-      // TODO: updated at
-    })
-    .where(eq(Asset.id, assetId))
+  // await db.execute({
+  //   sql: 'DELETE FROM Assets WHERE id = (:assetId)',
+  //   args: { assetId },
+  // })
+  throw new Error('not implemented')
 }

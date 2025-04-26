@@ -27,7 +27,7 @@ export const auth = {
         })
       }
 
-      const isPasswordValid = await verifyPasswordHash(user.passwordHash, password)
+      const isPasswordValid = await verifyPasswordHash(user.password_hash, password)
       if (!isPasswordValid) {
         throw new ActionError({
           code: 'BAD_REQUEST',
@@ -43,7 +43,7 @@ export const auth = {
         sameSite: 'lax',
         secure: import.meta.env.PROD,
         path: '/',
-        expires: session.expiresAt,
+        expires: session.expires_at,
       })
     },
   }),

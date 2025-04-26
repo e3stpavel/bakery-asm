@@ -1,11 +1,15 @@
-import { db, eq, User } from 'astro:db'
+import { db } from '~/utils/db'
+import { userSchema } from '~/utils/domain/user'
 
 export async function findUserByEmail(email: string) {
-  const result = await db
-    .select()
-    .from(User)
-    .where(eq(User.email, email))
-    .limit(1)
+  const result = await db.execute({
+    sql: 'SELECT * FROM Users WHERE email = (:email) LIMIT 1',
+    args: { email },
+  })
 
-  return result.at(0)
+  const [row] = result.rows
+  if (!row)
+    return null
+  
+  return userSchema.parse(row)
 }
