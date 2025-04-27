@@ -1,0 +1,41 @@
+---
+import HomeLayout from '~/layouts/HomeLayout.astro'
+import { getAssetReport } from '~/utils/data/assets'
+
+if (!Astro.locals.user) {
+  return Astro.rewrite('/login')
+}
+
+const result = await getAssetReport()
+---
+
+<HomeLayout title="Assets report">
+  <div class="mt-5 max-sm:-mx-4">
+    <dl class="grid grid-cols-1 divide-y divide-gray-200 overflow-hidden sm:rounded-lg bg-white shadow md:grid-cols-3 md:divide-x md:divide-y-0">
+      <div class="px-4 py-5 sm:p-6">
+        <dt class="text-sm font-medium text-gray-500">Assets in use</dt>
+        <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
+          <div class="flex items-baseline text-3xl font-bold slashed-zero tracking-tight text-fuchsia-600">
+            { result.assetsInUseCount }
+          </div>
+        </dd>
+      </div>
+      <div class="px-4 py-5 sm:p-6">
+        <dt class="text-sm font-medium text-gray-500">Assets stored (in warehouse)</dt>
+        <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
+          <div class="flex items-baseline text-3xl font-bold slashed-zero tracking-tight text-fuchsia-600">
+            { result.assetsStoredCount }
+          </div>
+        </dd>
+      </div>
+      <div class="px-4 py-5 sm:p-6">
+        <dt class="text-sm font-medium text-gray-500">Assets in service</dt>
+        <dd class="mt-1 flex items-baseline justify-between md:block lg:flex">
+          <div class="flex items-baseline text-3xl font-bold slashed-zero tracking-tight text-fuchsia-600">
+            { result.assetsInServiceCount }
+          </div>
+        </dd>
+      </div>
+    </dl>
+  </div>
+</HomeLayout>
