@@ -1,3 +1,4 @@
+import type { User } from '~/utils/domain/user'
 import { z } from 'astro/zod'
 import { db } from '~/utils/db'
 import { assetSchema } from '~/utils/domain/asset'
@@ -32,7 +33,7 @@ export async function findAssets(page: number = 1, pageSize: number = 10) {
   return result.rows.map((row) => {
     const asset = assetSchema.parse(row)
     const status = z.string().parse(row.status)
-    const updatedBy = partialUserSchema.parse({ ...row, id: row['user_id'] })
+    const updatedBy = partialUserSchema.parse({ ...row, id: row.user_id })
 
     return {
       asset,
@@ -81,18 +82,17 @@ export async function findAssetById(assetId: number) {
     ownership: classificatorSchema.shape.name,
   }).parse(row)
 
-  console.log(row)
   const createdBy = partialUserSchema.parse({
-    id: row['uc_id'],
-    firstname: row['uc_firstname'],
-    lastname: row['uc_lastname'],
-    email: row['uc_email'],
+    id: row.uc_id,
+    firstname: row.uc_firstname,
+    lastname: row.uc_lastname,
+    email: row.uc_email,
   })
   const updatedBy = partialUserSchema.parse({
-    id: row['uu_id'],
-    firstname: row['uu_firstname'],
-    lastname: row['uu_lastname'],
-    email: row['uu_email'],
+    id: row.uu_id,
+    firstname: row.uu_firstname,
+    lastname: row.uu_lastname,
+    email: row.uu_email,
   })
 
   return {
@@ -134,7 +134,7 @@ export async function getAssetReport() {
 
   const [row] = result.rows
   const [assetsInUseCount, assetsStoredCount, assetsInServiceCount] = z.number()
-    .positive()
+    .nonnegative()
     .array()
     .length(3)
     .parse(Object.values(row))
@@ -152,13 +152,24 @@ export async function countAssets() {
   })
 
   const [row] = result.rows
-  return z.number().positive().parse(row[0])
+  return z.number().nonnegative().parse(row[0])
 }
 
-export async function removeAssetById(assetId: number) {
-  // await db.execute({
-  //   sql: 'DELETE FROM Assets WHERE id = (:assetId)',
-  //   args: { assetId },
-  // })
-  throw new Error('not implemented')
+export async function removeAssetById(assetId: number, deletedById: User['id']) {
+  const result = await db.execute({
+    sql: `
+      UPDATE Assets
+      SET deleted_at = CURRENT_TIMESTAMP, deleted_by_id = (:deletedById)
+      WHERE id = (:assetId)
+      AND status_id = (
+        SELECT id FROM Statuses WHERE name = 'In storage'
+      )
+    `,
+    args: {
+      assetId,
+      deletedById,
+    },
+  })
+
+  return result.rowsAffected > 0
 }

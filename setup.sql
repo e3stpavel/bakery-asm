@@ -64,7 +64,7 @@ CREATE TABLE UserRoles (
 
 --- sessions ---
 CREATE TABLE Sessions (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT CHECK ( id >= 0 ),
+    id TEXT NOT NULL PRIMARY KEY CHECK ( LENGTH(TRIM(id)) > 0 ),
     user_id INTEGER NOT NULL REFERENCES Users(id) CHECK ( user_id >= 0 ),
     expires_at TEXT NOT NULL CHECK ( expires_at BETWEEN '1970-01-01' AND '2100-12-31' )
 );
@@ -80,13 +80,13 @@ CREATE TABLE Assets (
     acquired_at TEXT NOT NULL CHECK ( acquired_at BETWEEN '1970-01-01' AND '2100-12-31' ),
     acquisition_price INTEGER NOT NULL CHECK ( acquisition_price >= 0 ),
     expected_lifespan INTEGER NOT NULL CHECK ( expected_lifespan >= 0 ),
-    image_url TEXT CHECK ( image_url LIKE 'http://%' OR image_url LIKE 'https://%' ),
+    image_url TEXT CHECK ( image_url IS NULL OR image_url LIKE 'http://%' OR image_url LIKE 'https://%' ),
     created_by_id INTEGER NOT NULL REFERENCES Users(id) CHECK ( created_by_id >= 0 ),
     updated_by_id INTEGER NOT NULL REFERENCES Users(id) CHECK ( updated_by_id >= 0 ),
     deleted_by_id INTEGER REFERENCES Users(id) CHECK ( deleted_by_id >= 0 ),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP CHECK ( created_at BETWEEN '1970-01-01' AND '2100-12-31' ),
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP CHECK ( updated_at BETWEEN '1970-01-01' AND '2100-12-31' ),
-    deleted_at TEXT CHECK ( deleted_at BETWEEN '1970-01-01' AND '2100-12-31' )
+    deleted_at TEXT CHECK ( deleted_at IS NULL OR deleted_at BETWEEN '1970-01-01' AND '2100-12-31' )
 );
 
 CREATE TABLE AssetCategories (

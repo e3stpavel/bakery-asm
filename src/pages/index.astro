@@ -3,6 +3,7 @@ import { actions } from 'astro:actions'
 import Pagination from '~/components/Pagination.astro'
 import HomeLayout from '~/layouts/HomeLayout.astro'
 import { countAssets, findAssets } from '~/utils/data/assets'
+import { nf } from '~/utils/format'
 import { getPaginationDetails } from '~/utils/paginate'
 
 if (!Astro.locals.user) {
@@ -13,11 +14,6 @@ const result = Astro.getActionResult(actions.assets.remove)
 
 const url = Astro.url
 const { page, pageSize } = getPaginationDetails(url)
-
-const nf = new Intl.NumberFormat('en', {
-  style: 'currency',
-  currency: 'EUR',
-})
 
 const assets = await findAssets(page, pageSize)
 const assetsCount = await countAssets()
@@ -40,6 +36,20 @@ if ((page * pageSize) > assetsCount && assets.length === 0) {
         </div>
         <div class="ml-3">
           <p class="text-sm font-medium text-white">Asset was successfully removed</p>
+        </div>
+      </div>
+    </div>
+  )}
+  {result && result.error && (
+    <div class="rounded-md bg-red-600 border border-red-700 shadow p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-50" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-white">{ result.error.message } Please try again later.</p>
         </div>
       </div>
     </div>

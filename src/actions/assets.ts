@@ -6,16 +6,25 @@ export const assets = {
   remove: defineAction({
     accept: 'form',
     input: z.object({
-      assetId: z.coerce.number().gt(0),
+      assetId: z.coerce.number().nonnegative(),
     }),
     handler: async ({ assetId }, context) => {
-      if (!context.locals.user) {
+      const user = context.locals.user
+
+      if (!user) {
         throw new ActionError({
           code: 'UNAUTHORIZED',
         })
       }
 
-      await removeAssetById(assetId)
+      // TODO: authorization
+      const success = await removeAssetById(assetId, user.id)
+      if (!success) {
+        throw new ActionError({
+          code: 'CONFLICT',
+          message: 'Entity cannot be updated due to its current state.',
+        })
+      }
     },
   }),
 }

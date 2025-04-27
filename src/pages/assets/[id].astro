@@ -1,6 +1,7 @@
 ---
 import HomeLayout from '~/layouts/HomeLayout.astro'
 import { findAssetById, getAssetCategories } from '~/utils/data/assets'
+import { dtf, nf } from '~/utils/format'
 
 if (!Astro.locals.user) {
   return new Response(null, {
@@ -32,15 +33,6 @@ const {
 } = result
 
 const categories = await getAssetCategories(asset.id)
-
-const dtf = new Intl.DateTimeFormat('en', {
-  dateStyle: 'long',
-  timeStyle: 'short'
-})
-const nf = new Intl.NumberFormat('en', {
-  style: 'currency',
-  currency: 'EUR',
-})
 ---
 
 <HomeLayout title="Asset details">

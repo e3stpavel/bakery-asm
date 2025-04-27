@@ -10,6 +10,6 @@ export async function findUserByEmail(email: string) {
   const [row] = result.rows
   if (!row)
     return null
-  
+
   return userSchema.parse(row)
 }

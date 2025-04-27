@@ -5,7 +5,7 @@ import { userSchema } from './user'
 const datetimeSchema = z.coerce.date().min(new Date('1970-01-01')).max(new Date('2100-12-31'))
 
 export const assetSchema = z.object({
-  id: z.number().positive(),
+  id: z.number().nonnegative(),
   name: z.string().trim().min(1),
   description: z.string().nullable(),
   status_id: classificatorSchema.shape.id,
