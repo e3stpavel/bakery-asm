@@ -1,7 +1,7 @@
 import { z } from 'astro/zod'
 
 export const classificatorSchema = z.object({
-  id: z.number().nonnegative(),
+  code: z.string().regex(/[A-Z]{1,5}/),
   name: z.string().trim().min(1),
 })
 

@@ -2,8 +2,8 @@ import { z } from 'astro/zod'
 
 export const userSchema = z.object({
   id: z.number().nonnegative(),
-  firstname: z.string().trim().min(1),
-  lastname: z.string().trim().min(1),
+  firstname: z.string().trim().min(1).nullable(),
+  lastname: z.string().trim().min(1).nullable(),
   email: z.string().email(),
   password_hash: z.string().trim().min(1),
 })

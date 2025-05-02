@@ -5,12 +5,12 @@ import { userSchema } from './user'
 const datetimeSchema = z.coerce.date().min(new Date('1970-01-01')).max(new Date('2100-12-31'))
 
 export const assetSchema = z.object({
-  id: z.number().nonnegative(),
+  id: z.string().cuid2(),
   name: z.string().trim().min(1),
   description: z.string().nullable(),
-  status_id: classificatorSchema.shape.id,
-  ownership_id: classificatorSchema.shape.id,
-  condition_id: classificatorSchema.shape.id,
+  status_code: classificatorSchema.shape.code,
+  ownership_code: classificatorSchema.shape.code,
+  condition_code: classificatorSchema.shape.code,
   acquired_at: datetimeSchema,
   acquisition_price: z.number().positive(),
   expected_lifespan: z.number().positive(),
@@ -22,3 +22,5 @@ export const assetSchema = z.object({
   updated_at: datetimeSchema,
   deleted_at: datetimeSchema.nullable(),
 })
+
+export type Asset = z.infer<typeof assetSchema>

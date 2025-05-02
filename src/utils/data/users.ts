@@ -1,9 +1,10 @@
+import type { User } from '~/utils/domain/user'
 import { db } from '~/utils/db'
 import { userSchema } from '~/utils/domain/user'
 
-export async function findUserByEmail(email: string) {
+export async function findUserByEmail(email: User['email']) {
   const result = await db.execute({
-    sql: 'SELECT * FROM Users WHERE email = (:email) LIMIT 1',
+    sql: 'SELECT user_id AS id, * FROM users WHERE email = (:email) LIMIT 1',
     args: { email },
   })
 

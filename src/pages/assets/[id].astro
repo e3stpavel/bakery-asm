@@ -10,13 +10,13 @@ if (!Astro.locals.user) {
 }
 
 const { id } = Astro.params
-if (!id || Number.isNaN(+id)) {
+if (!id) {
   return new Response(null, {
     status: 404,
   })
 }
 
-const result = await findAssetById(+id)
+const result = await findAssetById(id)
 if (!result) {
   return new Response(null, {
     status: 404,
@@ -107,7 +107,7 @@ const categories = await getAssetCategories(asset.id)
                 <li class="py-4 px-4 text-sm leading-6">
                   <div class="flex items-center gap-2">
                     <span class="truncate font-medium">{ category.name }</span>
-                    <span class="flex-shrink-0 text-gray-400">#{ category.id }</span>
+                    <span class="flex-shrink-0 text-gray-400">#{ category.code }</span>
                   </div>
                 </li>
               ))}

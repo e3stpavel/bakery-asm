@@ -1,12 +1,13 @@
 import { ActionError, defineAction } from 'astro:actions'
 import { z } from 'astro:schema'
 import { removeAssetById } from '~/utils/data/assets'
+import { assetSchema } from '~/utils/domain/asset'
 
 export const assets = {
   remove: defineAction({
     accept: 'form',
     input: z.object({
-      assetId: z.coerce.number().nonnegative(),
+      assetId: assetSchema.shape.id,
     }),
     handler: async ({ assetId }, context) => {
       const user = context.locals.user
