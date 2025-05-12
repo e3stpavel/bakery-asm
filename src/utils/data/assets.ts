@@ -11,7 +11,7 @@ export async function findAssets(page: number = 1, pageSize: number = 10) {
   const result = await db.execute({
     sql: `
       SELECT
-        a.asset_id AS id,
+        a.asset_code AS id,
         a.*,
         s.name AS status,
         u.user_id,
@@ -22,7 +22,7 @@ export async function findAssets(page: number = 1, pageSize: number = 10) {
       INNER JOIN asset_statuses s on a.status_code = s.status_code
       INNER JOIN users u on a.updated_by_id = u.user_id
       WHERE a.deleted_at IS NULL AND a.deleted_by_id IS NULL
-      ORDER BY a.asset_id
+      ORDER BY a.asset_code
       LIMIT (:limit)
       OFFSET (:offset)
     `,
@@ -49,7 +49,7 @@ export async function findAssetById(assetId: Asset['id']) {
   const result = await db.execute({
     sql: `
       SELECT
-        a.asset_id AS id,
+        a.asset_code AS id,
         a.*,
         s.name AS status,
         c.name AS condition,
@@ -68,7 +68,7 @@ export async function findAssetById(assetId: Asset['id']) {
       INNER JOIN asset_ownerships o on a.ownership_code = o.ownership_code
       INNER JOIN users uc on a.created_by_id = uc.user_id
       INNER JOIN users uu on a.updated_by_id = uu.user_id
-      WHERE a.asset_id = (:assetId) AND a.deleted_at IS NULL AND a.deleted_by_id IS NULL
+      WHERE a.asset_code = (:assetId) AND a.deleted_at IS NULL AND a.deleted_by_id IS NULL
       LIMIT 1
     `,
     args: { assetId },
@@ -110,9 +110,9 @@ export async function getAssetCategories(assetId: Asset['id']) {
   const result = await db.execute({
     sql: `
       SELECT c.category_code AS code, c.name FROM assets_asset_categories_join ac
-      LEFT JOIN assets a on a.asset_id = ac.asset_id
+      LEFT JOIN assets a on a.asset_code = ac.asset_code
       LEFT JOIN asset_categories c on c.category_code = ac.category_code
-      WHERE a.asset_id = (:assetId)
+      WHERE a.asset_code = (:assetId)
     `,
     args: { assetId },
   })
@@ -151,7 +151,7 @@ export async function getAssetReport() {
 
 export async function countAssets() {
   const result = await db.execute({
-    sql: 'SELECT COUNT(asset_id) FROM assets WHERE deleted_at IS NULL AND deleted_by_id IS NULL',
+    sql: 'SELECT COUNT(asset_code) FROM assets WHERE deleted_at IS NULL AND deleted_by_id IS NULL',
   })
 
   const [row] = result.rows
@@ -162,8 +162,8 @@ export async function removeAssetById(assetId: Asset['id'], deletedById: User['i
   const result = await db.execute({
     sql: `
       UPDATE assets
-      SET deleted_at = CURRENT_TIMESTAMP, deleted_by_id = (:deletedById)
-      WHERE asset_id = (:assetId)
+      SET deleted_at = strftime('%s', 'now'), deleted_by_id = (:deletedById)
+      WHERE asset_code = (:assetId)
       AND status_code = (
         SELECT status_code FROM asset_statuses WHERE name = 'Asset in storage'
       )
