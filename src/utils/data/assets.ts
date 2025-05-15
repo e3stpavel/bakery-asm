@@ -21,7 +21,6 @@ export async function findAssets(page: number = 1, pageSize: number = 10) {
       FROM assets a
       INNER JOIN asset_statuses s on a.status_code = s.status_code
       INNER JOIN users u on a.updated_by_id = u.user_id
-      WHERE a.deleted_at IS NULL AND a.deleted_by_id IS NULL
       ORDER BY a.asset_code
       LIMIT (:limit)
       OFFSET (:offset)
@@ -68,7 +67,7 @@ export async function findAssetById(assetId: Asset['id']) {
       INNER JOIN asset_ownerships o on a.ownership_code = o.ownership_code
       INNER JOIN users uc on a.created_by_id = uc.user_id
       INNER JOIN users uu on a.updated_by_id = uu.user_id
-      WHERE a.asset_code = (:assetId) AND a.deleted_at IS NULL AND a.deleted_by_id IS NULL
+      WHERE a.asset_code = (:assetId)
       LIMIT 1
     `,
     args: { assetId },
@@ -158,21 +157,45 @@ export async function countAssets() {
   return z.number().nonnegative().parse(row[0])
 }
 
-export async function removeAssetById(assetId: Asset['id'], deletedById: User['id']) {
-  const result = await db.execute({
-    sql: `
-      UPDATE assets
-      SET deleted_at = strftime('%s', 'now'), deleted_by_id = (:deletedById)
-      WHERE asset_code = (:assetId)
-      AND status_code = (
-        SELECT status_code FROM asset_statuses WHERE name = 'Asset in storage'
-      )
-    `,
-    args: {
-      assetId,
-      deletedById,
-    },
-  })
+export async function restoreAssetById(assetId: Asset['id'], updatedById: User['id']) {
+  try {
+    const result = await db.execute({
+      // TODO: check the query
+      sql: `
+        UPDATE assets
+        SET deleted_at = NULL, deleted_by_id = NULL, updated_at = strftime('%s', 'now'), updated_by_id = (:updatedById)
+        WHERE asset_code = (:assetId)
+      `,
+      args: {
+        assetId,
+        updatedById,
+      },
+    })
 
-  return result.rowsAffected > 0
+    return result.rowsAffected > 0
+  }
+  catch {
+    return false
+  }
+}
+
+export async function removeAssetById(assetId: Asset['id'], deletedById: User['id']) {
+  try {
+    const result = await db.execute({
+      sql: `
+        UPDATE assets
+        SET deleted_at = strftime('%s', 'now'), deleted_by_id = (:deletedById)
+        WHERE asset_code = (:assetId)
+      `,
+      args: {
+        assetId,
+        deletedById,
+      },
+    })
+
+    return result.rowsAffected > 0
+  }
+  catch {
+    return false
+  }
 }
