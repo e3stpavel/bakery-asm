@@ -10,7 +10,7 @@ if (!Astro.locals.user) {
   return Astro.rewrite('/login')
 }
 
-const result = Astro.getActionResult(actions.assets.remove)
+const result = Astro.getActionResult(actions.assets.restore) ?? Astro.getActionResult(actions.assets.remove)
 
 const url = Astro.url
 const { page, pageSize } = getPaginationDetails(url)
@@ -35,7 +35,7 @@ if ((page * pageSize) > assetsCount && assets.length === 0) {
           </svg>
         </div>
         <div class="ml-3">
-          <p class="text-sm font-medium text-white">Asset was successfully removed</p>
+          <p class="text-sm font-medium text-white">Asset was successfully updated!</p>
         </div>
       </div>
     </div>
@@ -69,31 +69,57 @@ if ((page * pageSize) > assetsCount && assets.length === 0) {
         </tr>
       </thead>
       <tbody>
-        {assets.map(({ asset, status, updatedBy }) => (
-          <tr class="odd:bg-gray-50">
-            <td class="hidden px-3 py-3.5 text-sm text-gray-500 lg:table-cell lg:pl-6">{ asset.id }</td>
-            <td class="relative py-4 pl-4 pr-3 text-sm sm:pl-6 lg:pl-3">
-              <div class="font-medium text-gray-900">{ asset.name }</div>
-              <div class="mt-1 flex flex-col text-gray-500 sm:block lg:hidden">
-                <span>#{ asset.id }</span>
-                <span class="hidden sm:inline">·</span>
-                <span>{ status }</span>
-              </div>
-            </td>
-            <td class="hidden px-3 py-3.5 text-sm text-gray-500 lg:table-cell">{ status }</td>
-            <td class="px-3 py-3.5 text-sm text-gray-500">
-              { nf.format(asset.acquisition_price) }
-            </td>
-            <td class="hidden px-3 py-3.5 text-sm text-gray-500 lg:table-cell">{ updatedBy.email }</td>
-            <td class="relative py-3.5 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-              <a href={`/assets/${asset.id}`} class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white">View<span class="sr-only"> { asset.id }</span></a>
-              <form method="POST" action={actions.assets.remove} class="contents">
-                <input type="hidden" name="assetId" value={asset.id} />
-                <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white">Remove<span class="sr-only"> { asset.id }</span></button>
-              </form>
-            </td>
-          </tr>
-        ))}
+        {assets.map(({ asset, status, updatedBy }) => {
+          const isAssetDeleted = asset.deleted_at && asset.deleted_by_id
+
+          return (
+            <tr class="odd:bg-gray-50">
+              <td class="hidden px-3 py-3.5 text-sm text-gray-500 lg:table-cell lg:pl-6">{ asset.id }</td>
+              <td class="relative py-4 pl-4 pr-3 text-sm sm:pl-6 lg:pl-3">
+                <div class="font-medium text-gray-900">
+                  <span>{ asset.name }</span>
+                  {isAssetDeleted && (
+                    <div class="relative inline-block align-text-top">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="peer size-4 text-gray-500">
+                        <path d="M3 2a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H3Z" />
+                        <path fill-rule="evenodd" d="M3 6h10v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6Zm3 2.75A.75.75 0 0 1 6.75 8h2.5a.75.75 0 0 1 0 1.5h-2.5A.75.75 0 0 1 6 8.75Z" clip-rule="evenodd" />
+                      </svg>
+                      <div class="hidden absolute top-full left-1/2 -translate-x-1/2 bg-gray-900/80 text-white px-1 py-0.5 text-sm font-medium rounded peer-hover:block">
+                        Archived
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div class="mt-1 flex flex-col text-gray-500 sm:block lg:hidden">
+                  <span>{ asset.id }</span>
+                  <span class="hidden sm:inline">·</span>
+                  <span>{ status }</span>
+                </div>
+              </td>
+              <td class="hidden px-3 py-3.5 text-sm text-gray-500 lg:table-cell">{ status }</td>
+              <td class="px-3 py-3.5 text-sm text-gray-500">
+                { nf.format(asset.acquisition_price) }
+              </td>
+              <td class="hidden px-3 py-3.5 text-sm text-gray-500 lg:table-cell">{ updatedBy.email }</td>
+              <td class="relative py-3.5 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                <a href={`/assets/${asset.id}`} class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white">View<span class="sr-only"> { asset.id }</span></a>
+                {isAssetDeleted
+                  ? (
+                    <form method="POST" action={actions.assets.restore} class="contents">
+                      <input type="hidden" name="assetId" value={asset.id} />
+                      <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white">Restore<span class="sr-only"> { asset.id }</span></button>
+                    </form>
+                  )
+                  : (
+                    <form method="POST" action={actions.assets.remove} class="contents">
+                      <input type="hidden" name="assetId" value={asset.id} />
+                      <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white">Remove<span class="sr-only"> { asset.id }</span></button>
+                    </form>
+                  )}
+              </td>
+            </tr>
+          )
+        })}
       </tbody>
     </table>
     <Pagination page={page} pageSize={pageSize} total={assetsCount} />
