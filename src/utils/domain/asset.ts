@@ -11,7 +11,8 @@ export const assetSchema = z.object({
   ownership_code: classificatorSchema.shape.code,
   condition_code: classificatorSchema.shape.code,
   acquired_at: datetimeSchema,
-  acquisition_price: z.number().positive(),
+  // convert cents to euros
+  acquisition_price: z.number().positive().transform(price => price / 100),
   expected_lifespan: z.number().positive(),
   image_url: z.string().url().nullable(),
   created_by_id: userSchema.shape.id,
