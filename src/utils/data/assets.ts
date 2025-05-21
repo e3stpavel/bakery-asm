@@ -150,7 +150,7 @@ export async function getAssetReport() {
 
 export async function countAssets() {
   const result = await db.execute({
-    sql: 'SELECT COUNT(asset_code) FROM assets WHERE deleted_at IS NULL AND deleted_by_id IS NULL',
+    sql: 'SELECT COUNT(asset_code) FROM assets',
   })
 
   const [row] = result.rows
