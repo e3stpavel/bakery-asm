@@ -24,3 +24,11 @@ export const assetSchema = z.object({
 })
 
 export type Asset = z.infer<typeof assetSchema>
+
+export const assetDetailsSchema = assetSchema.pick({
+  name: true,
+  description: true,
+  image_url: true,
+})
+
+export type AssetDetails = z.infer<typeof assetDetailsSchema>

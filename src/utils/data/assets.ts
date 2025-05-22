@@ -1,8 +1,8 @@
-import type { Asset } from '~/utils/domain/asset'
+import type { Asset, AssetDetails } from '~/utils/domain/asset'
 import type { User } from '~/utils/domain/user'
 import { z } from 'astro/zod'
 import { db } from '~/utils/db'
-import { assetSchema } from '~/utils/domain/asset'
+import { assetDetailsSchema, assetSchema } from '~/utils/domain/asset'
 import { classificatorSchema } from '~/utils/domain/classificator'
 import { partialUserSchema } from '~/utils/domain/user'
 
@@ -155,6 +155,33 @@ export async function countAssets() {
 
   const [row] = result.rows
   return z.number().nonnegative().parse(row[0])
+}
+
+export async function updateAssetDetailsById(assetId: Asset['id'], assetDetails: AssetDetails, updatedById: User['id']) {
+  try {
+    const result = await db.execute({
+      sql: `
+        UPDATE assets
+        SET name          = (:name),
+            description   = (:description),
+            image_url     = (:image_url),
+            updated_at    = strftime('%s', 'now'),
+            updated_by_id = (:updatedById)
+        WHERE asset_code = (:assetId)
+      `,
+      // TODO: RETURNING asset_code as id, name, description, image_url
+      args: {
+        assetId,
+        updatedById,
+        ...assetDetails
+      }
+    })
+
+    return result.rowsAffected > 0
+  } 
+  catch {
+    return false
+  }
 }
 
 export async function restoreAssetById(assetId: Asset['id'], updatedById: User['id']) {
