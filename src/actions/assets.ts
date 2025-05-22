@@ -1,5 +1,6 @@
 import { ActionError, defineAction } from 'astro:actions'
 import { z } from 'astro:schema'
+import { updateAssetCategoriesByAssetId } from '~/utils/data/asset-categories'
 import { removeAssetById, restoreAssetById, updateAssetDetailsById } from '~/utils/data/assets'
 import { assetDetailsSchema, assetSchema } from '~/utils/domain/asset'
 import { classificatorSchema } from '~/utils/domain/classificator'
@@ -22,11 +23,19 @@ export const assets = {
 
       // TODO: ideally we'd like to return the updated asset here, 
       //  so we do not need to hit db one more time after update
-      const success = await updateAssetDetailsById(assetId, assetDetails, user.id)
-      if (!success) {
+      const detailsUpdateSuccess = await updateAssetDetailsById(assetId, assetDetails, user.id)
+      if (!detailsUpdateSuccess) {
         throw new ActionError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to update asset details.'
+        })
+      }
+
+      const categoriesUpdateSuccess = await updateAssetCategoriesByAssetId(assetId, categories, user.id)
+      if (!categoriesUpdateSuccess) {
+        throw new ActionError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to update asset categories.'
         })
       }
     },

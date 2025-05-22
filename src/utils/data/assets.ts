@@ -2,7 +2,7 @@ import type { Asset, AssetDetails } from '~/utils/domain/asset'
 import type { User } from '~/utils/domain/user'
 import { z } from 'astro/zod'
 import { db } from '~/utils/db'
-import { assetDetailsSchema, assetSchema } from '~/utils/domain/asset'
+import { assetSchema } from '~/utils/domain/asset'
 import { classificatorSchema } from '~/utils/domain/classificator'
 import { partialUserSchema } from '~/utils/domain/user'
 
