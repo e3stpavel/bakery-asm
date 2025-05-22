@@ -108,10 +108,10 @@ export async function findAssetById(assetId: Asset['id']) {
 export async function getAssetCategories(assetId: Asset['id']) {
   const result = await db.execute({
     sql: `
-      SELECT c.category_code AS code, c.name FROM assets_asset_categories_join ac
-      LEFT JOIN assets a on a.asset_code = ac.asset_code
-      LEFT JOIN asset_categories c on c.category_code = ac.category_code
-      WHERE a.asset_code = (:assetId)
+      SELECT c.category_code AS code, c.name
+      FROM assets_asset_categories_join ac
+              INNER JOIN asset_categories c on c.category_code = ac.category_code
+          AND ac.asset_code = (:assetId);
     `,
     args: { assetId },
   })
