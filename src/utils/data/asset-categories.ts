@@ -1,8 +1,9 @@
 import type { Asset } from '~/utils/domain/asset'
+import type { Category } from '~/utils/domain/classificator'
+import type { User } from '~/utils/domain/user'
 import { z } from 'astro/zod'
 import { db } from '~/utils/db'
-import { classificatorSchema, type Category } from '~/utils/domain/classificator'
-import type { User } from '~/utils/domain/user'
+import { classificatorSchema } from '~/utils/domain/classificator'
 
 export async function getAllCategoriesAndAssetRelation(assetId: Asset['id']) {
   const result = await db.execute({
@@ -27,10 +28,37 @@ export async function getAllCategoriesAndAssetRelation(assetId: Asset['id']) {
   })
 }
 
-export async function updateAssetCategoriesByAssetId(assetId: Asset['id'], categoryCodes: Array<Category['code']>,  updatedById: User['id']) {
+// TODO: transactions were not working (probably windows issue)
+export async function removeAssetCategoriesByAssetId(assetId: Asset['id'], updatedById: User['id']) {
+  const result = await db.batch([
+    {
+      sql: `
+        DELETE FROM assets_asset_categories_join
+        WHERE asset_code = (:assetId)
+        `,
+      args: {
+        assetId,
+      },
+    },
+    {
+      sql: `
+        UPDATE assets SET updated_at = strftime('%s', 'now'), updated_by_id = (:updatedById)
+        WHERE asset_code = (:assetId)
+      `,
+      args: {
+        assetId,
+        updatedById,
+      },
+    },
+  ])
+
+  return result.some(o => o.rowsAffected > 0)
+}
+
+export async function updateAssetCategoriesByAssetId(assetId: Asset['id'], categoryCodes: Array<Category['code']>, updatedById: User['id']) {
   const deletePlaceholders = categoryCodes.map(() => '?').join(',')
   const insertPlaceholders = categoryCodes.map(() => '(?, ?)').join(',')
-  
+
   const result = await db.batch([
     {
       sql: `
@@ -40,8 +68,8 @@ export async function updateAssetCategoriesByAssetId(assetId: Asset['id'], categ
       `,
       args: [
         assetId,
-        ...categoryCodes
-      ]
+        ...categoryCodes,
+      ],
     },
     {
       sql: `
@@ -49,7 +77,7 @@ export async function updateAssetCategoriesByAssetId(assetId: Asset['id'], categ
         VALUES ${insertPlaceholders}
         ON CONFLICT DO NOTHING;
       `,
-      args: categoryCodes.flatMap(code => [assetId, code])
+      args: categoryCodes.flatMap(code => [assetId, code]),
     },
     {
       sql: `
@@ -58,10 +86,10 @@ export async function updateAssetCategoriesByAssetId(assetId: Asset['id'], categ
       `,
       args: {
         assetId,
-        updatedById
-      }
-    }
-  ], 'write')
+        updatedById,
+      },
+    },
+  ])
 
-  return result.some(mutation => mutation.rowsAffected > 0)
+  return result.some(o => o.rowsAffected > 0)
 }
