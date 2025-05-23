@@ -1,0 +1,147 @@
+---
+import { isInputError } from 'astro:actions'
+import { actions } from 'astro:actions'
+import HomeLayout from '~/layouts/HomeLayout.astro'
+import { getAllCategoriesAndAssetRelation } from '~/utils/data/asset-categories'
+import { findAssetById } from '~/utils/data/assets'
+
+if (!Astro.locals.user) {
+  return new Response(null, {
+    status: 404,
+  })
+}
+
+const { id } = Astro.params
+if (!id) {
+  return new Response(null, {
+    status: 404,
+  })
+}
+
+const result = Astro.getActionResult(actions.assets.edit)
+const inputErrors = isInputError(result?.error) ? result.error.fields : {};
+
+const {asset} = await findAssetById(id) ?? {}
+if (!asset) {
+  return new Response(null, {
+    status: 404,
+  })
+}
+
+
+const isAssetDeleted = asset.deleted_at && asset.deleted_by_id
+if (isAssetDeleted) {
+  return new Response(null, {
+    status: 403,
+  })
+}
+
+const categories = await getAllCategoriesAndAssetRelation(asset.id)
+---
+
+<HomeLayout title="Edit asset">
+  {result && !result.error && (
+    <div class="rounded-md bg-green-600 border border-green-700 shadow p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-green-50" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-white">Asset was successfully updated!</p>
+        </div>
+      </div>
+    </div>
+  )}
+  {result && result.error && (
+    <div class="rounded-md bg-red-600 border border-red-700 shadow p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-50" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-white">{ isInputError(result.error) ? 'Failed to validate input.' : result.error.message } Please try again later.</p>
+        </div>
+      </div>
+    </div>
+  )}
+  <div class="overflow-hidden bg-white shadow sm:rounded-lg mt-10 max-sm:-mx-4">
+    <form method="POST" action={actions.assets.edit} class="px-4 py-6 sm:px-6">
+      <div class="space-y-12 sm:space-y-16">
+        <div>
+          <h2 class="text-base font-semibold leading-7 text-gray-900">General information</h2>
+          <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-600">Update general asset details like name, description etc.</p>
+
+          <div class="mt-10 space-y-8 border-b border-gray-900/10 pb-12 sm:space-y-0 sm:divide-y sm:divide-gray-900/10 sm:border-t sm:pb-0">
+            <div class="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
+              <label for="assetId" class="block text-sm font-medium leading-6 text-gray-900 sm:pt-1.5">ID</label>
+              <div class="mt-2 sm:col-span-2 sm:mt-0">
+                <input type="text" name="assetId" id="assetId" readonly value={asset.id} class="block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-fuchsia-600 sm:max-w-xs sm:text-sm sm:leading-6 cursor-not-allowed bg-gray-50 text-gray-500 ring-gray-200" aria-describedby="assetId-error" >
+              </div>
+              {inputErrors.assetId && <p class="mt-1 text-sm text-red-600" id="assetId-error">{inputErrors.assetId.join(',')}</p>}
+            </div>
+
+            <div class="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
+              <label for="name" class="block text-sm font-medium leading-6 text-gray-900 sm:pt-1.5">Name</label>
+              <div class="mt-2 sm:col-span-2 sm:mt-0">
+                <input type="text" name="name" id="name" value={asset.name} autocomplete="name" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-fuchsia-600 sm:max-w-xs sm:text-sm sm:leading-6"  aria-describedby="name-error" >
+                {inputErrors.name && <p class="mt-1 text-sm text-red-600" id="name-error">{inputErrors.name.join(',')}</p>}
+              </div>
+            </div>
+
+            <div class="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
+              <label for="description" class="block text-sm font-medium leading-6 text-gray-900 sm:pt-1.5">Description</label>
+              <div class="mt-2 sm:col-span-2 sm:mt-0">
+                <textarea id="description" name="description" placeholder="<empty>" rows="3" class="block w-full max-w-2xl rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-fuchsia-600 sm:text-sm sm:leading-6" aria-describedby="description-error">{ asset.description }</textarea>
+                <p class="mt-3 text-sm leading-6 text-gray-600">Describe the asset in a few sentences</p>
+                {inputErrors.description && <p class="mt-1 text-sm text-red-600" id="description-error">{inputErrors.description.join(',')}</p>}
+              </div>
+            </div>
+
+            <div class="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6">
+              <label for="image_url" class="block text-sm font-medium leading-6 text-gray-900 sm:pt-1.5">Image URL</label>
+              <div class="mt-2 sm:col-span-2 sm:mt-0">
+                <input type="text" name="image_url" id="image_url" value={asset.image_url} autocomplete="url" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-fuchsia-600 sm:max-w-xs sm:text-sm sm:leading-6"  aria-describedby="image_url-error" >
+                {inputErrors.image_url && <p class="mt-1 text-sm text-red-600" id="image_url-error">{inputErrors.image_url.join(',')}</p>}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="text-base font-semibold leading-7 text-gray-900">Categories</h2>
+          <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-600">Assign categories to asset or just remove some</p>
+
+          <div class="mt-10 space-y-10 border-b border-gray-900/10 pb-12 sm:space-y-0 sm:divide-y sm:divide-gray-900/10 sm:border-t sm:pb-0">
+            <fieldset>
+              <legend class="sr-only">Categories</legend>
+              <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:py-6">
+                <div class="text-sm font-semibold leading-6 text-gray-900" aria-hidden="true">Asset categories</div>
+                <div class="mt-4 sm:col-span-2 sm:mt-0">
+                  {categories.map(category => (
+                    <div class="relative isolate overflow-clip first:rounded-tl-md first:rounded-tr-md last:rounded-bl-md last:rounded-br-md">
+                      <input id={category.code} name="categories" value={category.code} type="checkbox" class="peer absolute left-4 inset-y-1/2 -translate-y-1/2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" aria-labelledby={`${category.code}-label`} aria-describedby={`${category.code}-description`} checked={category.belongs_to_asset} />
+                      <div class="flex rounded-[inherit] border border-gray-200 p-4 leading-6 text-sm peer-checked:border-indigo-200 peer-checked:bg-indigo-50">
+                        <div class="ml-6 flex items-center gap-2 *:peer-checked:text-indigo-900">
+                          <span id={`${category.code}-label`} class="truncate font-medium">{ category.name }</span>
+                          <span id={`${category.code}-description`} class="flex-shrink-0 text-gray-400">#{ category.code }</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+      </div>
+      <div class="mt-6 flex items-center justify-end gap-x-6">
+        <button type="reset" class="text-sm font-semibold leading-6 text-gray-900">Cancel</button>
+        <button type="submit" class="inline-flex justify-center rounded-md bg-fuchsia-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-fuchsia-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-600">Save changes</button>
+      </div>
+    </form>
+  </div>
+</HomeLayout>
